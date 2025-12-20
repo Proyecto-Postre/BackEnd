@@ -1,65 +1,83 @@
-using System.Net.Mime;
+using DulceFe.API.Promotions.Domain.Model.Commands;
+using DulceFe.API.Promotions.Domain.Model.Queries;
+using DulceFe.API.Promotions.Domain.Services;
 using DulceFe.API.Promotions.Interfaces.REST.Resources;
 using DulceFe.API.Promotions.Interfaces.REST.Transform;
-using DulceFe.API.Shared.Domain.Repositories;
-using DulceFe.API.Shared.Infrastructure.Persistence.EFC.Configuration;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Net.Mime;
 
 namespace DulceFe.API.Promotions.Interfaces.REST;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/promotions/coupons")]
 [Produces(MediaTypeNames.Application.Json)]
 public class CouponsController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICouponCommandService _couponCommandService;
+    private readonly ICouponQueryService _couponQueryService;
 
-    public CouponsController(AppDbContext context, IUnitOfWork unitOfWork)
+    public CouponsController(ICouponCommandService couponCommandService, ICouponQueryService couponQueryService)
     {
-        _context = context;
-        _unitOfWork = unitOfWork;
-    }
-
-    [HttpPost("validate")]
-    public async Task<IActionResult> ValidateCoupon([FromBody] ValidateCouponResource resource)
-    {
-        var coupon = await _context.Coupons
-            .FirstOrDefaultAsync(c => c.Code == resource.Code && c.IsActive);
-
-        if (coupon == null) return NotFound(new { message = "Cupón inválido" });
-        if (coupon.ExpiryDate.HasValue && coupon.ExpiryDate < DateTime.UtcNow)
-        {
-            coupon.IsActive = false;
-            await _unitOfWork.CompleteAsync();
-            return BadRequest(new { message = "Cupón expirado" });
-        }
-
-        return Ok(CouponTransformers.ToResource(coupon));
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateCoupon([FromBody] CreateCouponResource resource)
-    {
-        var coupon = CouponTransformers.ToEntity(resource);
-        await _context.Coupons.AddAsync(coupon);
-        await _unitOfWork.CompleteAsync();
-        return CreatedAtAction(nameof(GetCouponById), new { id = coupon.Id }, CouponTransformers.ToResource(coupon));
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetCouponById(int id)
-    {
-        var coupon = await _context.Coupons.FindAsync(id);
-        if (coupon == null) return NotFound();
-        return Ok(CouponTransformers.ToResource(coupon));
+        _couponCommandService = couponCommandService;
+        _couponQueryService = couponQueryService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllCoupons()
     {
-        var coupons = await _context.Coupons.ToListAsync();
-        return Ok(coupons.Select(CouponTransformers.ToResource));
+        var query = new GetAllCouponsQuery();
+        var coupons = await _couponQueryService.Handle(query);
+        var resources = coupons.Select(CouponResourceFromEntityAssembler.ToResourceFromEntity);
+        return Ok(resources);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetCouponById(int id)
+    {
+        var query = new GetCouponByIdQuery(id);
+        var coupon = await _couponQueryService.Handle(query);
+        if (coupon == null) return NotFound();
+        var resource = CouponResourceFromEntityAssembler.ToResourceFromEntity(coupon);
+        return Ok(resource);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateCoupon([FromBody] CreateCouponResource resource)
+    {
+        var command = CreateCouponCommandFromResourceAssembler.ToCommandFromResource(resource);
+        var coupon = await _couponCommandService.Handle(command);
+        var createdResource = CouponResourceFromEntityAssembler.ToResourceFromEntity(coupon);
+        return CreatedAtAction(nameof(GetCouponById), new { id = createdResource.Id }, createdResource);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCoupon(int id, [FromBody] UpdateCouponResource resource)
+    {
+        try
+        {
+            var command = UpdateCouponCommandFromResourceAssembler.ToCommandFromResource(id, resource);
+            var coupon = await _couponCommandService.Handle(command);
+            var updatedResource = CouponResourceFromEntityAssembler.ToResourceFromEntity(coupon);
+            return Ok(updatedResource);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCoupon(int id)
+    {
+        try
+        {
+            var command = new DeleteCouponCommand(id);
+            await _couponCommandService.Handle(command);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
