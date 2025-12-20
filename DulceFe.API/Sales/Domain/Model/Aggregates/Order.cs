@@ -1,3 +1,5 @@
+using DulceFe.API.Sales.Domain.Model.ValueObjects;
+
 namespace DulceFe.API.Sales.Domain.Model.Aggregates;
 
 public class Order
@@ -6,7 +8,7 @@ public class Order
     public int UserId { get; set; }
     public DateTime OrderDate { get; set; }
     public decimal TotalAmount { get; set; }
-    public string Status { get; set; } = "Pending";
+    public OrderStatus Status { get; set; } = OrderStatus.Pending;
     
     // Simplification for now: store items as JSON or reference a separate table
     // In a full DDD approach we would use a collection of OrderItems

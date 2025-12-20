@@ -1,8 +1,8 @@
 using DulceFe.API.Sales.Domain.Model.Aggregates;
-using DulceFe.API.Sales.Domain.Repositories;
-using DulceFe.API.Shared.Domain.Repositories;
+using DulceFe.API.Sales.Domain.Model.Commands;
+using DulceFe.API.Sales.Domain.Model.Queries;
+using DulceFe.API.Sales.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Net.Mime;
 
 namespace DulceFe.API.Sales.Interfaces.REST;
@@ -12,66 +12,63 @@ namespace DulceFe.API.Sales.Interfaces.REST;
 [Produces(MediaTypeNames.Application.Json)]
 public class OrdersController : ControllerBase
 {
-    private readonly IOrderRepository _orderRepository;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly DulceFe.API.Shared.Infrastructure.Persistence.EFC.Configuration.AppDbContext _context;
+    private readonly IOrderCommandService _orderCommandService;
+    private readonly IOrderQueryService _orderQueryService;
 
-    public OrdersController(IOrderRepository orderRepository, IUnitOfWork unitOfWork, DulceFe.API.Shared.Infrastructure.Persistence.EFC.Configuration.AppDbContext context)
+    public OrdersController(IOrderCommandService orderCommandService, IOrderQueryService orderQueryService)
     {
-        _orderRepository = orderRepository;
-        _unitOfWork = unitOfWork;
-        _context = context;
+        _orderCommandService = orderCommandService;
+        _orderQueryService = orderQueryService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllOrders()
     {
-        var orders = await _orderRepository.ListAsync();
+        var query = new GetAllOrdersQuery();
+        var orders = await _orderQueryService.Handle(query);
         return Ok(orders);
     }
 
     [HttpGet("user/{userId}")]
-    public async Task<IActionResult> GetOrdersByUserId(int userId)
+    public async Task<IActionResult> GetOrdersByUserId(int userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var orders = await _context.Orders
-            .Where(o => o.UserId == userId)
-            .OrderByDescending(o => o.OrderDate)
-            .ToListAsync();
-        return Ok(orders);
+        var query = new GetOrdersByUserIdPagedQuery(userId, page, pageSize);
+        var (orders, totalItems) = await _orderQueryService.Handle(query);
+        
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        return Ok(new
+        {
+            Data = orders,
+            Meta = new
+            {
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                PageNumber = page,
+                PageSize = pageSize
+            }
+        });
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] Order order)
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderCommand command)
     {
-        order.OrderDate = DateTime.UtcNow;
-        
-        // 1. Save the order
-        await _orderRepository.AddAsync(order);
-        
-        // 2. Synchronize Sales (HU-35, 73)
-        try 
-        {
-             var products = await _context.Products.ToListAsync();
-             foreach(var p in products) {
-                 if (order.ItemsJson.Contains(p.Title)) {
-                     p.Sales++;
-                 }
-             }
-        } catch {}
-
-        // 3. Consume Coupon (HU-32, 74)
-        if (!string.IsNullOrEmpty(order.CouponCode)) 
-        {
-            var coupon = await _context.Coupons
-                .FirstOrDefaultAsync(c => c.Code == order.CouponCode && c.IsActive);
-            
-            if (coupon != null && coupon.AssignedUserId.HasValue) 
-            {
-                coupon.IsActive = false; // Consume personal coupon
-            }
-        }
-
-        await _unitOfWork.CompleteAsync();
+        var order = await _orderCommandService.Handle(command);
         return CreatedAtAction(nameof(GetAllOrders), new { id = order.Id }, order);
+    }
+
+    [HttpPatch("{id}/cancel")]
+    public async Task<IActionResult> CancelOrder(int id)
+    {
+        try
+        {
+            var command = new CancelOrderCommand(id);
+            await _orderCommandService.Handle(command);
+            return Ok(new { message = "Order cancelled successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

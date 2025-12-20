@@ -4,6 +4,7 @@ using DulceFe.API.Shared.Domain.Repositories;
 using DulceFe.API.Shared.Infrastructure.Persistence.EFC.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using DulceFe.API.Sales.Domain.Model.ValueObjects;
 
 namespace DulceFe.API.Sales.Interfaces.REST;
 
@@ -34,9 +35,13 @@ public class AdminOrdersController : ControllerBase
         var order = await _context.Orders.FindAsync(id);
         if (order == null) return NotFound();
         
-        order.Status = status;
-        _context.Orders.Update(order);
-        await _unitOfWork.CompleteAsync();
-        return Ok(order);
+        if (Enum.TryParse<OrderStatus>(status, true, out var orderStatus))
+        {
+            order.Status = orderStatus;
+            _context.Orders.Update(order);
+            await _unitOfWork.CompleteAsync();
+            return Ok(order);
+        }
+        return BadRequest("Invalid status");
     }
 }
