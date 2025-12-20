@@ -10,6 +10,7 @@ public class CateringInquiry
     public DateTime EventDate { get; set; }
     public string EventType { get; set; } = string.Empty;
     public string AdditionalDetails { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

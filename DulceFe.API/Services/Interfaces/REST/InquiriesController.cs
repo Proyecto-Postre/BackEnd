@@ -1,67 +1,41 @@
-using System.Net.Mime;
-using DulceFe.API.Services.Interfaces.REST.Resources;
-using DulceFe.API.Services.Interfaces.REST.Transform;
-using DulceFe.API.Shared.Domain.Repositories;
-using DulceFe.API.Shared.Infrastructure.Persistence.EFC.Configuration;
+using DulceFe.API.Services.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Net.Mime;
 
 namespace DulceFe.API.Services.Interfaces.REST;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/inquiries")]
 [Produces(MediaTypeNames.Application.Json)]
 public class InquiriesController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICateringInquiryQueryService _queryService;
+    private readonly ICateringInquiryCommandService _commandService;
 
-    public InquiriesController(AppDbContext context, IUnitOfWork unitOfWork)
+    public InquiriesController(ICateringInquiryQueryService queryService, ICateringInquiryCommandService commandService)
     {
-        _context = context;
-        _unitOfWork = unitOfWork;
+        _queryService = queryService;
+        _commandService = commandService;
     }
 
-    [HttpPost("catering")]
-    public async Task<IActionResult> CreateCateringInquiry([FromBody] CreateCateringInquiryResource resource)
+    [HttpGet]
+    public async Task<IActionResult> GetAllInquiries()
     {
-        var inquiry = ServiceTransformers.ToEntity(resource);
-        await _context.CateringInquiries.AddAsync(inquiry);
-        await _unitOfWork.CompleteAsync();
-        return CreatedAtAction(nameof(GetCateringInquiryById), new { id = inquiry.Id }, ServiceTransformers.ToResource(inquiry));
+        var inquiries = await _queryService.Handle();
+        return Ok(inquiries);
     }
 
-    [HttpGet("catering/{id}")]
-    public async Task<IActionResult> GetCateringInquiryById(int id)
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
     {
-        var inquiry = await _context.CateringInquiries.FindAsync(id);
-        if (inquiry == null) return NotFound();
-        return Ok(ServiceTransformers.ToResource(inquiry));
-    }
-
-    [HttpPost("contact")]
-    public async Task<IActionResult> CreateContactMessage([FromBody] CreateContactMessageResource resource)
-    {
-        var message = ServiceTransformers.ToEntity(resource);
-        await _context.ContactMessages.AddAsync(message);
-        await _unitOfWork.CompleteAsync();
-        return Ok(ServiceTransformers.ToResource(message));
-    }
-
-    [HttpPost("workshops")]
-    public async Task<IActionResult> SubscribeToWorkshop([FromBody] CreateWorkshopSubscriptionResource resource)
-    {
-        var subscription = ServiceTransformers.ToEntity(resource);
-        await _context.WorkshopSubscriptions.AddAsync(subscription);
-        await _unitOfWork.CompleteAsync();
-        return Ok(ServiceTransformers.ToResource(subscription));
-    }
-
-    [HttpGet("catering")]
-    public async Task<IActionResult> GetAllCateringInquiries()
-    {
-        var inquiries = await _context.CateringInquiries.ToListAsync();
-        var resources = inquiries.Select(ServiceTransformers.ToResource);
-        return Ok(resources);
+        try
+        {
+            await _commandService.Handle(id, status);
+            return Ok(new { message = "Status updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
