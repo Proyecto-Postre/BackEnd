@@ -1,3 +1,7 @@
+using System.Reflection;
+using FluentValidation;
+using Serilog;
+using Serilog.Events;
 using DulceFe.API.IAM.Application.Internal.CommandServices;
 using DulceFe.API.IAM.Application.Internal.OutboundServices;
 using DulceFe.API.IAM.Application.Internal.QueryServices;
@@ -14,17 +18,47 @@ using DulceFe.API.Catalog.Domain.Services;
 using DulceFe.API.Catalog.Infrastructure.Persistence.EFC.Repositories;
 using DulceFe.API.Shared.Domain.Repositories;
 using DulceFe.API.Shared.Infrastructure.Interfaces.ASP.Configuration;
+using DulceFe.API.Shared.Infrastructure.Middleware.Extensions;
 using DulceFe.API.Shared.Infrastructure.Persistence.EFC.Configuration;
 using DulceFe.API.Shared.Infrastructure.Persistence.EFC.Repositories;
+using DulceFe.API.Sales.Domain.Model.Aggregates;
 using DulceFe.API.Sales.Domain.Repositories;
+using DulceFe.API.Sales.Domain.Services;
+using DulceFe.API.Sales.Application.Internal.CommandServices;
+using DulceFe.API.Sales.Application.Internal.QueryServices;
 using DulceFe.API.Sales.Infrastructure.Persistence.EFC.Repositories;
 using DulceFe.API.Social.Domain.Repositories;
 using DulceFe.API.Social.Infrastructure.Persistence.EFC.Repositories;
+using DulceFe.API.Promotions.Domain.Model.Aggregates;
+using DulceFe.API.Promotions.Domain.Repositories;
+using DulceFe.API.Promotions.Domain.Services;
+using DulceFe.API.Promotions.Application.Internal.CommandServices;
+using DulceFe.API.Promotions.Application.Internal.QueryServices;
+using DulceFe.API.Promotions.Infrastructure.Persistence.EFC.Repositories;
+using DulceFe.API.Services.Domain.Repositories;
+using DulceFe.API.Services.Domain.Services;
+using DulceFe.API.Services.Application.Internal.CommandServices;
+using DulceFe.API.Services.Application.Internal.QueryServices;
+using DulceFe.API.Services.Infrastructure.Persistence.EFC.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// FluentValidation
+builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
+// Serilog Configuration
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/dulcefe-log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddControllers(options =>
@@ -93,9 +127,21 @@ builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
 
 // Sales Bounded Context Injection
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderCommandService, OrderCommandService>();
+builder.Services.AddScoped<IOrderQueryService, OrderQueryService>();
 
 // Social Bounded Context Injection
 builder.Services.AddScoped<ITestimonialRepository, TestimonialRepository>();
+
+// Promotions Bounded Context Injection
+builder.Services.AddScoped<ICouponRepository, CouponRepository>();
+builder.Services.AddScoped<ICouponCommandService, CouponCommandService>();
+builder.Services.AddScoped<ICouponQueryService, CouponQueryService>();
+
+// Services Bounded Context Injection
+builder.Services.AddScoped<ICateringInquiryRepository, CateringInquiryRepository>();
+builder.Services.AddScoped<ICateringInquiryCommandService, CateringCommandService>();
+builder.Services.AddScoped<ICateringInquiryQueryService, CateringQueryService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -107,6 +153,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseGlobalExceptionHandlerMiddleware();
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -132,6 +179,8 @@ catch (Exception ex)
     Console.WriteLine($"An error occurred during database initialization: {ex.Message}");
     // We don't throw here to allow the app to start even if seeding fails
 }
+
+app.UseStaticFiles();
 
 app.UseCors("AllowAllPolicy");
 

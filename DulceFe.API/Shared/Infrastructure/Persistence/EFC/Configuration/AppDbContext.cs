@@ -57,5 +57,9 @@ public class AppDbContext : DbContext
                 if (!string.IsNullOrEmpty(indexName)) index.SetDatabaseName(indexName.ToSnakeCase());
             }
         }
+
+        builder.Entity<Order>()
+            .Property(o => o.Status)
+            .HasConversion<string>();
     }
 }

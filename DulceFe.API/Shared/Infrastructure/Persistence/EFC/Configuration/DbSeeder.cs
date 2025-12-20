@@ -45,12 +45,12 @@ public static class DbSeeder
         if (!context.Products.Any())
         {
             context.Products.AddRange(
-                new Product { Title = "Red Velvet Supreme", Description = "Suave bizcocho de terciopelo rojo con capas de frosting de queso crema.", Price = 55.0m, Category = "Tortas", Image = "", IsFeatured = true },
-                new Product { Title = "Chocolate Intenso", Description = "Para los amantes del cacao. Bizcocho húmedo con ganache de chocolate 70%.", Price = 90.0m, Category = "Tortas", Image = "", IsFeatured = true },
-                new Product { Title = "Cheesecake de Frutos Rojos", Description = "Base crujiente de galleta, crema suave de queso y topping artesanal de frutos del bosque.", Price = 120.0m, Category = "Postres", Image = "", IsFeatured = false },
-                new Product { Title = "Macarons Surtidos (Box x6)", Description = "Delicados bocados franceses en sabores variados: Pistacho, Frambuesa y Vainilla.", Price = 45.0m, Category = "Postres", Image = "", IsFeatured = false },
-                new Product { Title = "Cappuccino Art", Description = "Espresso doble con leche texturizada y arte latte.", Price = 12.0m, Category = "Bebidas", Image = "", IsFeatured = false },
-                new Product { Title = "Té Helado de Durazno", Description = "Refrescante infusión de té negro con trozos de durazno natural.", Price = 10.0m, Category = "Bebidas", Image = "", IsFeatured = true }
+                new Product { Title = "Red Velvet Supreme", Description = "Suave bizcocho de terciopelo rojo con capas de frosting de queso crema.", Price = 55.0m, Category = "Tortas", Image = "", IsFeatured = true, Stock = 15 },
+                new Product { Title = "Chocolate Intenso", Description = "Para los amantes del cacao. Bizcocho húmedo con ganache de chocolate 70%.", Price = 90.0m, Category = "Tortas", Image = "", IsFeatured = true, Stock = 10 },
+                new Product { Title = "Cheesecake de Frutos Rojos", Description = "Base crujiente de galleta, crema suave de queso y topping artesanal de frutos del bosque.", Price = 120.0m, Category = "Postres", Image = "", IsFeatured = false, Stock = 8 },
+                new Product { Title = "Macarons Surtidos (Box x6)", Description = "Delicados bocados franceses en sabores variados: Pistacho, Frambuesa y Vainilla.", Price = 45.0m, Category = "Postres", Image = "", IsFeatured = false, Stock = 25 },
+                new Product { Title = "Cappuccino Art", Description = "Espresso doble con leche texturizada y arte latte.", Price = 12.0m, Category = "Bebidas", Image = "", IsFeatured = false, Stock = 50 },
+                new Product { Title = "Té Helado de Durazno", Description = "Refrescante infusión de té negro con trozos de durazno natural.", Price = 10.0m, Category = "Bebidas", Image = "", IsFeatured = true, Stock = 50 }
             );
             context.SaveChanges();
         }
