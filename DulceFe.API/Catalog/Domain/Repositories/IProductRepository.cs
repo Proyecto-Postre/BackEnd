@@ -7,4 +7,5 @@ public interface IProductRepository : IBaseRepository<Product>
 {
     Task<IEnumerable<Product>> FindByQueryAsync(string query);
     Task<IEnumerable<Product>> FindByCategoryAsync(string category);
+    Task<IEnumerable<Product>> FindByStockLessThanAsync(int stockThreshold);
 }

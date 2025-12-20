@@ -25,4 +25,11 @@ public class ProductRepository : BaseRepository<Product>, IProductRepository
             .Where(p => p.Category == category)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Product>> FindByStockLessThanAsync(int stockThreshold)
+    {
+        return await Context.Set<Product>()
+            .Where(p => p.Stock < stockThreshold)
+            .ToListAsync();
+    }
 }

@@ -10,4 +10,5 @@ public class Product
     public string Image { get; set; } = string.Empty;
     public bool IsFeatured { get; set; }
     public int Sales { get; set; }
+    public int Stock { get; set; }
 }

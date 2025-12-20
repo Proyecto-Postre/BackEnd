@@ -27,4 +27,9 @@ public class ProductQueryService : IProductQueryService
     {
         return await _productRepository.FindByCategoryAsync(query.Category);
     }
+
+    public async Task<IEnumerable<Product>> Handle(GetLowStockProductsQuery query)
+    {
+        return await _productRepository.FindByStockLessThanAsync(query.Threshold);
+    }
 }
