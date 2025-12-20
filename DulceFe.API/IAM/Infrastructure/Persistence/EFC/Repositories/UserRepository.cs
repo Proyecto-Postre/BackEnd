@@ -21,4 +21,14 @@ public class UserRepository : BaseRepository<User>, IUserRepository
     {
         return Context.Set<User>().Any(u => u.Username == username);
     }
+
+    public async Task<User?> FindByEmailAsync(string email)
+    {
+        return await Context.Set<User>().FirstOrDefaultAsync(u => u.Email == email);
+    }
+
+    public async Task<User?> FindByPasswordResetTokenAsync(string token)
+    {
+        return await Context.Set<User>().FirstOrDefaultAsync(u => u.PasswordResetToken == token);
+    }
 }

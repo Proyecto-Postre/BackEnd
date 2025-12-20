@@ -34,4 +34,27 @@ public class AuthenticationController : ControllerBase
         var authenticatedUserResource = AuthenticatedUserResourceFromEntityAssembler.ToResourceFromEntity(user, token);
         return Ok(authenticatedUserResource);
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordResource resource)
+    {
+        var forgotPasswordCommand = ForgotPasswordCommandFromResourceAssembler.ToCommandFromResource(resource);
+        await _userCommandService.Handle(forgotPasswordCommand);
+        return Ok(new { message = "If the email exists, a password reset token has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordResource resource)
+    {
+        try 
+        {
+            var resetPasswordCommand = ResetPasswordCommandFromResourceAssembler.ToCommandFromResource(resource);
+            await _userCommandService.Handle(resetPasswordCommand);
+            return Ok(new { message = "Password reset successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

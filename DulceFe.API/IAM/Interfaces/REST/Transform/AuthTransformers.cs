@@ -20,6 +20,22 @@ public static class SignUpCommandFromResourceAssembler
     }
 }
 
+public static class ForgotPasswordCommandFromResourceAssembler
+{
+    public static ForgotPasswordCommand ToCommandFromResource(ForgotPasswordResource resource)
+    {
+        return new ForgotPasswordCommand(resource.Email);
+    }
+}
+
+public static class ResetPasswordCommandFromResourceAssembler
+{
+    public static ResetPasswordCommand ToCommandFromResource(ResetPasswordResource resource)
+    {
+        return new ResetPasswordCommand(resource.Token, resource.NewPassword);
+    }
+}
+
 public static class AuthenticatedUserResourceFromEntityAssembler
 {
     public static AuthenticatedUserResource ToResourceFromEntity(User user, string token)
@@ -28,10 +44,3 @@ public static class AuthenticatedUserResourceFromEntityAssembler
     }
 }
 
-public static class UserResourceFromEntityAssembler
-{
-    public static UserResource ToResourceFromEntity(User user)
-    {
-        return new UserResource(user.Id, user.Username);
-    }
-}

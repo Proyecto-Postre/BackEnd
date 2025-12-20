@@ -47,4 +47,73 @@ public class UserCommandService : IUserCommandService
         
         return (user, token);
     }
+
+    public async Task<User?> Handle(UpdateUserCommand command)
+    {
+        var user = await _userRepository.FindByIdAsync(command.Id);
+        if (user == null) throw new Exception("User not found");
+
+        user.FirstName = command.FirstName;
+        user.LastName = command.LastName;
+        user.Email = command.Email;
+        user.Phone = command.Phone;
+        user.Address = command.Address;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _userRepository.Update(user);
+        await _unitOfWork.CompleteAsync();
+
+        return user;
+    }
+
+    public async Task Handle(UpdateUserPasswordCommand command)
+    {
+        var user = await _userRepository.FindByIdAsync(command.Id);
+        if (user == null) throw new Exception("User not found");
+
+        if (!_hashingService.VerifyPassword(command.CurrentPassword, user.PasswordHash))
+            throw new Exception("Incorrect current password");
+
+        user.PasswordHash = _hashingService.HashPassword(command.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _userRepository.Update(user);
+        await _unitOfWork.CompleteAsync();
+    }
+
+    public async Task Handle(ForgotPasswordCommand command)
+    {
+        var user = await _userRepository.FindByEmailAsync(command.Email);
+        if (user == null) 
+        {
+            // Don't reveal that the user does not exist
+            return; 
+        }
+
+        var token = Guid.NewGuid().ToString();
+        user.PasswordResetToken = token;
+        user.PasswordResetTokenExpiration = DateTime.UtcNow.AddHours(24);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _userRepository.Update(user);
+        await _unitOfWork.CompleteAsync();
+
+        // TODO: Send email with token
+        Console.WriteLine($"Password reset token for {command.Email}: {token}");
+    }
+
+    public async Task Handle(ResetPasswordCommand command)
+    {
+        var user = await _userRepository.FindByPasswordResetTokenAsync(command.Token);
+        if (user == null || user.PasswordResetTokenExpiration < DateTime.UtcNow)
+            throw new Exception("Invalid or expired token");
+
+        user.PasswordHash = _hashingService.HashPassword(command.NewPassword);
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiration = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _userRepository.Update(user);
+        await _unitOfWork.CompleteAsync();
+    }
 }
