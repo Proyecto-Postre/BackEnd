@@ -66,9 +66,11 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (connectionString != null)
+    if (!string.IsNullOrEmpty(connectionString))
     {
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        // Use hardcoded version to avoid SIGSEGV in some Linux environments during AutoDetect
+        var serverVersion = new MySqlServerVersion(new Version(8, 0, 40)); 
+        options.UseMySql(connectionString, serverVersion);
     }
 });
 
@@ -105,17 +107,30 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-// Enable Swagger in all environments for easier testing of the 75 HUs on Render
 app.UseSwagger();
 app.UseSwaggerUI();
 
 // Auto-migrate database on startup
-using (var scope = app.Services.CreateScope())
+try 
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var hashingService = scope.ServiceProvider.GetRequiredService<IHashingService>();
-    context.Database.EnsureCreated();
-    DbSeeder.Seed(context, hashingService);
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var context = services.GetRequiredService<AppDbContext>();
+        var hashingService = services.GetRequiredService<IHashingService>();
+        
+        Console.WriteLine("Applying migrations/ensuring database exists...");
+        context.Database.EnsureCreated();
+        
+        Console.WriteLine("Seeding database...");
+        DbSeeder.Seed(context, hashingService);
+        Console.WriteLine("Database initialization completed.");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"An error occurred during database initialization: {ex.Message}");
+    // We don't throw here to allow the app to start even if seeding fails
 }
 
 app.UseCors("AllowAllPolicy");
@@ -123,18 +138,9 @@ app.UseCors("AllowAllPolicy");
 // IAM Middleware
 app.UseRequestAuthorization();
 
-// app.UseHttpsRedirection(); // Can be optional on Render if they handle TLS at the edge
-
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure the app listens on the PORT environment variable (required by Render)
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrEmpty(port))
-{
-    app.Run($"http://0.0.0.0:{port}");
-}
-else
-{
-    app.Run();
-}
+// Render uses the PORT environment variable
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Run($"http://0.0.0.0:{port}");
