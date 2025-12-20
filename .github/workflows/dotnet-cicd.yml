@@ -1,0 +1,36 @@
+name: DulceFe Backend CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'BackEnd/**'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'BackEnd/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./BackEnd
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore DulceFe.API/DulceFe.API.csproj
+      
+    - name: Build
+      run: dotnet build DulceFe.API/DulceFe.API.csproj --no-restore
+      
+    - name: Test
+      run: dotnet test DulceFe.API.Tests/DulceFe.API.Tests.csproj --no-build --verbosity normal
