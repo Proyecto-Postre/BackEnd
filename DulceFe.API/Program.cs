@@ -141,6 +141,13 @@ app.UseRequestAuthorization();
 app.UseAuthorization();
 app.MapControllers();
 
+// Redirect root to Swagger
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/swagger");
+    return Task.CompletedTask;
+});
+
 // Render uses the PORT environment variable
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
