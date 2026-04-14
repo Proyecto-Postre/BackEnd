@@ -41,10 +41,17 @@ public class UserCommandService : IUserCommandService
 
     public async Task<(User user, string token)> Handle(SignInCommand command)
     {
-        var user = await _userRepository.FindByEmailAsync(command.Email);
+        // Try to find by email first
+        var user = await _userRepository.FindByEmailAsync(command.UsernameOrEmail);
+        
+        // If not found by email, try by username
+        if (user == null)
+        {
+            user = await _userRepository.FindByUsernameAsync(command.UsernameOrEmail);
+        }
         
         if (user == null || !_hashingService.VerifyPassword(command.Password, user.PasswordHash))
-            throw new InvalidOperationException("Invalid email or password");
+            throw new InvalidOperationException("Invalid email/username or password");
 
         var token = _tokenService.GenerateToken(user);
         
