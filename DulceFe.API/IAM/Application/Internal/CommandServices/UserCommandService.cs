@@ -25,7 +25,7 @@ public class UserCommandService : IUserCommandService
     public async Task<User?> Handle(SignUpCommand command)
     {
         if (_userRepository.ExistsByUsername(command.Username))
-            throw new Exception($"Username {command.Username} is already taken");
+            throw new InvalidOperationException($"Username {command.Username} is already taken");
 
         var hashedPassword = _hashingService.HashPassword(command.Password);
         var user = new User(command.Username, hashedPassword);
@@ -41,7 +41,7 @@ public class UserCommandService : IUserCommandService
         var user = await _userRepository.FindByUsernameAsync(command.Username);
         
         if (user == null || !_hashingService.VerifyPassword(command.Password, user.PasswordHash))
-            throw new Exception("Invalid username or password");
+            throw new InvalidOperationException("Invalid username or password");
 
         var token = _tokenService.GenerateToken(user);
         
@@ -51,7 +51,7 @@ public class UserCommandService : IUserCommandService
     public async Task<User?> Handle(UpdateUserCommand command)
     {
         var user = await _userRepository.FindByIdAsync(command.Id);
-        if (user == null) throw new Exception("User not found");
+        if (user == null) throw new InvalidOperationException("User not found");
 
         user.FirstName = command.FirstName;
         user.LastName = command.LastName;
@@ -69,10 +69,10 @@ public class UserCommandService : IUserCommandService
     public async Task Handle(UpdateUserPasswordCommand command)
     {
         var user = await _userRepository.FindByIdAsync(command.Id);
-        if (user == null) throw new Exception("User not found");
+        if (user == null) throw new InvalidOperationException("User not found");
 
         if (!_hashingService.VerifyPassword(command.CurrentPassword, user.PasswordHash))
-            throw new Exception("Incorrect current password");
+            throw new InvalidOperationException("Incorrect current password");
 
         user.PasswordHash = _hashingService.HashPassword(command.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
@@ -106,7 +106,7 @@ public class UserCommandService : IUserCommandService
     {
         var user = await _userRepository.FindByPasswordResetTokenAsync(command.Token);
         if (user == null || user.PasswordResetTokenExpiration < DateTime.UtcNow)
-            throw new Exception("Invalid or expired token");
+            throw new InvalidOperationException("Invalid or expired token");
 
         user.PasswordHash = _hashingService.HashPassword(command.NewPassword);
         user.PasswordResetToken = null;
