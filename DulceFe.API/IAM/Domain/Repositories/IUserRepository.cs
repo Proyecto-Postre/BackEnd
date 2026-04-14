@@ -7,6 +7,7 @@ public interface IUserRepository : IBaseRepository<User>
 {
     Task<User?> FindByUsernameAsync(string username);
     bool ExistsByUsername(string username);
+    bool ExistsByEmail(string email);
     Task<User?> FindByEmailAsync(string email);
     Task<User?> FindByPasswordResetTokenAsync(string token);
 }

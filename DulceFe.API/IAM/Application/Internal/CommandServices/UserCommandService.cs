@@ -27,8 +27,11 @@ public class UserCommandService : IUserCommandService
         if (_userRepository.ExistsByUsername(command.Username))
             throw new InvalidOperationException($"Username {command.Username} is already taken");
 
+        if (_userRepository.ExistsByEmail(command.Email))
+            throw new InvalidOperationException($"Email {command.Email} is already registered");
+
         var hashedPassword = _hashingService.HashPassword(command.Password);
-        var user = new User(command.Username, hashedPassword);
+        var user = new User(command.Username, hashedPassword, email: command.Email);
         
         await _userRepository.AddAsync(user);
         await _unitOfWork.CompleteAsync();
@@ -38,10 +41,10 @@ public class UserCommandService : IUserCommandService
 
     public async Task<(User user, string token)> Handle(SignInCommand command)
     {
-        var user = await _userRepository.FindByUsernameAsync(command.Username);
+        var user = await _userRepository.FindByEmailAsync(command.Email);
         
         if (user == null || !_hashingService.VerifyPassword(command.Password, user.PasswordHash))
-            throw new InvalidOperationException("Invalid username or password");
+            throw new InvalidOperationException("Invalid email or password");
 
         var token = _tokenService.GenerateToken(user);
         

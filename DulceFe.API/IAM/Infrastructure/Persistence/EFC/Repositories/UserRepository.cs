@@ -22,6 +22,11 @@ public class UserRepository : BaseRepository<User>, IUserRepository
         return Context.Set<User>().Any(u => u.Username == username);
     }
 
+    public bool ExistsByEmail(string email)
+    {
+        return Context.Set<User>().Any(u => u.Email == email);
+    }
+
     public async Task<User?> FindByEmailAsync(string email)
     {
         return await Context.Set<User>().FirstOrDefaultAsync(u => u.Email == email);
