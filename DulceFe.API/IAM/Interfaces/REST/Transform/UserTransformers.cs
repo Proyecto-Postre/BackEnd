@@ -26,12 +26,12 @@ public static class UserResourceFromEntityAssembler
     {
         return new UserResource(
             entity.Id, 
-            entity.Username, 
-            entity.FirstName, 
-            entity.LastName, 
-            entity.Email, 
-            entity.Phone, 
-            entity.Address,
+            entity.Username ?? "", 
+            entity.FirstName ?? "", 
+            entity.LastName ?? "", 
+            entity.Email ?? "", 
+            entity.Phone ?? "", 
+            entity.Address ?? "",
             entity.Role.ToString()
         );
     }
