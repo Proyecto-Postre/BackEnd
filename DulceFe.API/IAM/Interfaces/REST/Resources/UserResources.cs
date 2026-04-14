@@ -7,7 +7,7 @@ public record UserResource(
     string LastName, 
     string Email, 
     string Phone, 
-    string Address,
+    string? Address,
     string Role
 );
 
@@ -16,7 +16,7 @@ public record UpdateUserResource(
     string LastName, 
     string Email, 
     string Phone, 
-    string Address
+    string? Address
 );
 
 public record UpdateUserPasswordResource(
