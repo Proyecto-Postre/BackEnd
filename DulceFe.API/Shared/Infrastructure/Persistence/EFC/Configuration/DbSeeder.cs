@@ -12,14 +12,18 @@ public static class DbSeeder
 {
     public static void Seed(AppDbContext context, IHashingService hashingService)
     {
-        if (!context.Users.Any())
+        // Wipe users to ensure clean state and correct passwords
+        if (context.Users.Any())
         {
-            context.Users.AddRange(
-                new User("admin@gmail.com", hashingService.HashPassword("lolasoxd153"), "Admin", "Fe", "admin@gmail.com", "999888777", UserRole.Admin),
-                new User("jafethworren@gmail.com", hashingService.HashPassword("lolasoxd153"), "Jafeth", "Worren", "jafeth@gmail.com", "987654321", UserRole.Customer)
-            );
+            context.Users.RemoveRange(context.Users);
             context.SaveChanges();
         }
+
+        context.Users.AddRange(
+            new User("admin@gmail.com", hashingService.HashPassword("lolasoxd153"), "Admin", "Fe", "admin@gmail.com", "999888777", UserRole.Admin),
+            new User("jafethworren@gmail.com", hashingService.HashPassword("lolasoxd153"), "Jafeth", "Worren", "jafeth@gmail.com", "987654321", UserRole.Customer)
+        );
+        context.SaveChanges();
 
         if (!context.Coupons.Any())
         {

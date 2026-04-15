@@ -1,5 +1,6 @@
-using DulceFe.API.IAM.Application.Internal.OutboundServices;
 using DulceFe.API.IAM.Domain.Services;
+using System.Security.Claims;
+using DulceFe.API.IAM.Domain.Model.Queries;
 
 namespace DulceFe.API.IAM.Infrastructure.Pipeline.Middleware.Components;
 
@@ -20,8 +21,21 @@ public class RequestAuthorizationMiddleware
             var userId = tokenService.ValidateToken(token);
             if (userId != null)
             {
-                // attach user to context on successful jwt validation
-                context.Items["User"] = await userQueryService.Handle(new Domain.Model.Queries.GetUserByIdQuery(userId.Value));
+                var user = await userQueryService.Handle(new GetUserByIdQuery(userId.Value));
+                if (user != null)
+                {
+                    // attach user to context items
+                    context.Items["User"] = user;
+                    
+                    // CRITICAL: attach user to ClaimsPrincipal so Controller.User works
+                    var claims = new[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                        new Claim(ClaimTypes.Name, user.Username)
+                    };
+                    var identity = new ClaimsIdentity(claims, "Bearer");
+                    context.User = new ClaimsPrincipal(identity);
+                }
             }
         }
         await _next(context);

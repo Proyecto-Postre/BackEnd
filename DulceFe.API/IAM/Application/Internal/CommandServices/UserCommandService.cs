@@ -41,6 +41,8 @@ public class UserCommandService : IUserCommandService
 
     public async Task<(User user, string token)> Handle(SignInCommand command)
     {
+        Console.WriteLine($"[AUTH] Attempting login for: {command.UsernameOrEmail}");
+
         // Try to find by email first
         var user = await _userRepository.FindByEmailAsync(command.UsernameOrEmail);
         
@@ -50,9 +52,19 @@ public class UserCommandService : IUserCommandService
             user = await _userRepository.FindByUsernameAsync(command.UsernameOrEmail);
         }
         
-        if (user == null || !_hashingService.VerifyPassword(command.Password, user.PasswordHash))
+        if (user == null) {
+            Console.WriteLine($"[AUTH] User NOT found: {command.UsernameOrEmail}");
             throw new InvalidOperationException("Invalid email/username or password");
+        }
 
+        Console.WriteLine($"[AUTH] User found: {user.Username}. Verifying password...");
+        
+        if (!_hashingService.VerifyPassword(command.Password, user.PasswordHash)) {
+            Console.WriteLine($"[AUTH] Password verification FAILED for: {user.Username}");
+            throw new InvalidOperationException("Invalid email/username or password");
+        }
+
+        Console.WriteLine($"[AUTH] Login successful for: {user.Username}");
         var token = _tokenService.GenerateToken(user);
         
         return (user, token);
