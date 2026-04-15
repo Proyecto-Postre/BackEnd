@@ -31,7 +31,7 @@ public class UserCommandService : IUserCommandService
             throw new InvalidOperationException($"Email {command.Email} is already registered");
 
         var hashedPassword = _hashingService.HashPassword(command.Password);
-        var user = new User(command.Username, hashedPassword, email: command.Email);
+        var user = new User(command.Username, hashedPassword, command.FirstName, command.LastName, command.Email, command.Phone);
         
         await _userRepository.AddAsync(user);
         await _unitOfWork.CompleteAsync();
