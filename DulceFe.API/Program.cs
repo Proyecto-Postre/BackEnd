@@ -104,7 +104,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     {
         // Use hardcoded version to avoid SIGSEGV in some Linux environments during AutoDetect
         var serverVersion = new MySqlServerVersion(new Version(8, 0, 40)); 
-        options.UseMySql(connectionString, serverVersion);
+        options.UseMySql(connectionString, serverVersion, mysqlOptions => 
+        {
+            mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null
+            );
+        });
     }
 });
 
