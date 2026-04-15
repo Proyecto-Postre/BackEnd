@@ -32,7 +32,7 @@ public static class UserResourceFromEntityAssembler
             entity.Email ?? "", 
             entity.Phone ?? "", 
             entity.Address ?? "",
-            entity.Role.ToString()
+            entity.Role.ToString().ToLower()
         );
     }
 }
