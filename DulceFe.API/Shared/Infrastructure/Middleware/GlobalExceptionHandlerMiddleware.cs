@@ -42,8 +42,16 @@ public class GlobalExceptionHandlerMiddleware
         }
         else if (exception is ArgumentException || exception is InvalidOperationException) // Simplification for domain rules
         {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            message = exception.Message;
+            if (exception.Message == "Invalid email/username or password")
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                message = exception.Message;
+            }
+            else
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                message = exception.Message;
+            }
         }
 
         // Log the full error
