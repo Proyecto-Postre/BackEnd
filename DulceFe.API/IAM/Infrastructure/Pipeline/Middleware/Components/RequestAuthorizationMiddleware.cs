@@ -16,7 +16,9 @@ public class RequestAuthorizationMiddleware
 
     public async Task Invoke(HttpContext context, IUserQueryService userQueryService, ITokenService tokenService)
     {
-        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+        var token = authHeader?.Split(" ").Last();
+
         if (token != null)
         {
             var userId = tokenService.ValidateToken(token);
@@ -28,7 +30,6 @@ public class RequestAuthorizationMiddleware
                     // attach user to context items
                     context.Items["User"] = user;
                     
-                    // CRITICAL: attach user to ClaimsPrincipal so Controller.User works
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -38,9 +39,23 @@ public class RequestAuthorizationMiddleware
                     
                     var identity = new ClaimsIdentity(claims, "Bearer");
                     context.User = new ClaimsPrincipal(identity);
+                    Console.WriteLine($"[AUTH] Successfully authenticated user: {user.Username} (ID: {user.Id}) with role {user.Role}");
+                }
+                else
+                {
+                    Console.WriteLine($"[AUTH] Token valid for ID {userId}, but user not found in database.");
                 }
             }
+            else
+            {
+                Console.WriteLine($"[AUTH] Failed to validate token: {token.Substring(0, Math.Min(token.Length, 15))}...");
+            }
         }
+        else if (!string.IsNullOrEmpty(authHeader))
+        {
+             Console.WriteLine("[AUTH] Authorization header found but token could not be extracted.");
+        }
+
         await _next(context);
     }
 }

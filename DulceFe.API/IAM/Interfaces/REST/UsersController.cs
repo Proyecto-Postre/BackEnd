@@ -46,12 +46,26 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetCurrentUser()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            Console.WriteLine("[USERS] Me endpoint failed: NameIdentifier claim not found.");
             return Unauthorized();
+        }
+
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            Console.WriteLine($"[USERS] Me endpoint failed: Could not parse userId '{userIdClaim}' as int.");
+            return Unauthorized();
+        }
 
         var getUserByIdQuery = new GetUserByIdQuery(userId);
         var user = await _userQueryService.Handle(getUserByIdQuery);
-        if (user == null) return NotFound();
+        
+        if (user == null) 
+        {
+            Console.WriteLine($"[USERS] Me endpoint failed: User with ID {userId} not found in database.");
+            return NotFound();
+        }
         
         var userResource = UserResourceFromEntityAssembler.ToResourceFromEntity(user);
         return Ok(userResource);

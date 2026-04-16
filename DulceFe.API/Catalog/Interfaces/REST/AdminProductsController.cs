@@ -23,6 +23,13 @@ public class AdminProductsController : ControllerBase
         _unitOfWork = unitOfWork;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAllProducts()
+    {
+        var products = await _context.Products.ToListAsync();
+        return Ok(products);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] ProductResource resource)
     {
