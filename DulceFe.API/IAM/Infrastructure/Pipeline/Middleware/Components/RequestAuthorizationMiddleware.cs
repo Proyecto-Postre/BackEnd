@@ -1,5 +1,6 @@
 using DulceFe.API.IAM.Domain.Services;
 using System.Security.Claims;
+using System.Collections.Generic;
 using DulceFe.API.IAM.Domain.Model.Queries;
 
 namespace DulceFe.API.IAM.Infrastructure.Pipeline.Middleware.Components;
@@ -28,11 +29,13 @@ public class RequestAuthorizationMiddleware
                     context.Items["User"] = user;
                     
                     // CRITICAL: attach user to ClaimsPrincipal so Controller.User works
-                    var claims = new[]
+                    var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                        new Claim(ClaimTypes.Name, user.Username)
+                        new Claim(ClaimTypes.Name, user.Username),
+                        new Claim(ClaimTypes.Role, user.Role.ToString())
                     };
+                    
                     var identity = new ClaimsIdentity(claims, "Bearer");
                     context.User = new ClaimsPrincipal(identity);
                 }
