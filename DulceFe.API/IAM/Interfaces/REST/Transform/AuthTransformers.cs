@@ -44,9 +44,9 @@ public static class AuthenticatedUserResourceFromEntityAssembler
             user.Id, 
             user.Username, 
             token, 
-            user.FirstName, 
-            user.LastName, 
-            user.Role.ToString().ToLower()
+            user.FirstName ?? "", 
+            user.LastName ?? "", 
+            ((int)user.Role).ToString()
         );
     }
 }
